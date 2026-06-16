@@ -1,0 +1,47 @@
+# Production stack for a single VPS (e.g. Oracle Cloud Always Free).
+# Differences from docker-compose.yml (local dev):
+#   - SECRET_KEY is REQUIRED (no insecure fallback) and read from the VPS .env
+#   - the backend is NOT published to the host; only the frontend is exposed
+#     (nginx proxies /api/ -> backend:8000 internally)
+#   - the frontend is served on port 80
+#
+# Deploy with:  docker compose -f docker-compose.prod.yml up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: buildtrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-buildtrack}
+      POSTGRES_DB: buildtrack
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buildtrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://buildtrack:${POSTGRES_PASSWORD:-buildtrack}@db:5432/buildtrack
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required — set it in /opt/buildtrack/.env}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+    expose:
+      - "8000"  # internal only; reached via the frontend nginx proxy
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:

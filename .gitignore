@@ -24,3 +24,6 @@ dist/
 
 # Claude Code local settings
 .claude/
+
+# Local agent/audit notes (not part of the project)
+claude-notes.md

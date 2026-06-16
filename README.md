@@ -88,6 +88,14 @@ instructions. A sample file is at `data/Gerenciamento_execução_de_obra.csv`.
 - Tables are auto-created on backend startup. For production schema changes, wire in Alembic (already in requirements).
 - CORS is open (`*`) for convenience; tighten `allow_origins` in `app/main.py` before exposing publicly.
 
+## Deployment (CI/CD)
+
+Pushing to `main` runs the tests, builds the images, and deploys to a VPS over
+SSH via GitHub Actions ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml),
+using [`docker-compose.prod.yml`](docker-compose.prod.yml)). See
+[docs/deployment.md](docs/deployment.md) for the Oracle Cloud Always Free setup
+and the required GitHub secrets.
+
 ## License
 
 Released under the [MIT License](LICENSE).

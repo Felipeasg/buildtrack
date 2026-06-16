@@ -1,0 +1,55 @@
+name: CI/CD
+
+# Runs tests + build on every push/PR; deploys to the VPS only on push to main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Tests use an isolated in-memory SQLite via a dependency override; this var
+    # only satisfies the table-creation that app.main runs at import time, so no
+    # Postgres service is needed in CI.
+    env:
+      DATABASE_URL: "sqlite:///./ci.db"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+      - name: Run tests
+        working-directory: backend
+        run: python -m pytest -q
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Verify the production images build before we ship them to the VPS.
+      - name: Build images
+        run: docker compose -f docker-compose.prod.yml build
+
+  deploy:
+    needs: [test, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/buildtrack
+            git fetch --all
+            git reset --hard origin/main
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker image prune -f
