@@ -129,3 +129,27 @@ docker image prune -f
   after that, every push to `main` redeploys automatically.
 - **Builds run on the VPS** (ARM). All base images used here are multi-arch, so
   ARM builds work without changes.
+
+---
+
+## Other deployment patterns (for the future)
+
+This project currently uses **Pattern 1 (SSH push-deploy)**, chosen for an
+Oracle Cloud Always Free VM that is powerful enough to build images itself.
+If the hosting situation changes (a weaker/free-tier box, a public repo, or a
+desire for cleaner rollbacks), these are the alternatives worth revisiting:
+
+| Pattern | How it works | Pros | Cons |
+|---|---|---|---|
+| **1. SSH push-deploy** (current) | Action SSHes in, runs `git pull && docker compose up -d --build` | Simplest mental model; no extra services on VPS; nothing extra to secure | VPS builds images (CPU/RAM heavy — matters on tiny free tiers); SSH key stored as GitHub secret |
+| **2. Self-hosted runner on the VPS** | Install GitHub's runner on the VPS; the deploy job runs *locally* on the box | No inbound SSH from GitHub; build/deploy in one place; easy access to local docker | A long-lived runner process; **security risk if repo is public** (untrusted PRs could run code) — use only on private repos |
+| **3. Registry + pull (GHCR + Watchtower)** | Actions build images, push to **GitHub Container Registry** (free); [Watchtower](https://containrrr.dev/watchtower/) on the VPS auto-pulls new images | VPS never builds (great for weak free VMs); clean rollbacks via tags; no inbound access needed | Two moving parts; need to push images and switch compose to `image:` instead of `build:` |
+| **4. Webhook listener** | A tiny webhook service on the VPS triggers `git pull` + compose on push | Decoupled; no SSH secret in CI | One more service to run/secure; least common |
+
+**When to switch:**
+
+- Moving to a small/constrained VM (e.g. GCP `e2-micro` ~1 GB) or making the
+  repo public → **Pattern 3**, so the box never builds and never accepts
+  inbound CI connections.
+- Want builds + deploy to happen entirely on the box without an SSH key in
+  GitHub, and the repo stays private → **Pattern 2**.
