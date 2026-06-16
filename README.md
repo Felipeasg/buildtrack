@@ -87,3 +87,7 @@ instructions. A sample file is at `data/Gerenciamento_execução_de_obra.csv`.
 
 - Tables are auto-created on backend startup. For production schema changes, wire in Alembic (already in requirements).
 - CORS is open (`*`) for convenience; tighten `allow_origins` in `app/main.py` before exposing publicly.
+
+## License
+
+Released under the [MIT License](LICENSE).
