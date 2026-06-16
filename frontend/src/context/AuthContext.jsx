@@ -1,16 +1,45 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { getMe, login as apiLogin, register as apiRegister } from "../api";
 
 const AuthContext = createContext(null);
 
-// Auth is disabled for local testing: the app runs as a fixed demo user
-// (matching the backend default) with no login step.
-const DEMO_USER = { email: "demo@buildtrack.local", full_name: "Demo User" };
-
 export function AuthProvider({ children }) {
-  const logout = () => {};
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    getMe()
+      .then((res) => setUser(res.data))
+      .catch(() => localStorage.removeItem("token"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const login = async (email, password) => {
+    const res = await apiLogin(email, password);
+    localStorage.setItem("token", res.data.access_token);
+    const me = await getMe();
+    setUser(me.data);
+  };
+
+  const register = async (data) => {
+    const res = await apiRegister(data);
+    localStorage.setItem("token", res.data.access_token);
+    const me = await getMe();
+    setUser(me.data);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user: DEMO_USER, loading: false, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

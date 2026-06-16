@@ -72,8 +72,16 @@ npm run dev   # proxies /api to http://localhost:8000
 | POST | `/api/milestones/{id}/tasks` | Add a task |
 | PATCH/DELETE | `/api/tasks/{id}` | Update / delete a task |
 | GET/POST | `/api/tags` | List / create tags |
+| POST | `/api/import/csv` | Bulk-create milestones + tasks from a CSV upload |
 
 All endpoints except register/login require `Authorization: Bearer <token>`.
+
+## Importing a project from CSV
+
+Bulk-create milestones and tasks from a CSV file using the **Import CSV** button
+on the Dashboard (you must be logged in), or via `POST /api/import/csv`. See
+[docs/csv-import.md](docs/csv-import.md) for the file format and step-by-step
+instructions. A sample file is at `data/Gerenciamento_execução_de_obra.csv`.
 
 ## Notes
 

@@ -1,24 +1,26 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import decode_token
 from app.models import User
 
-# Auth is disabled for local testing: every request runs as a single
-# default user, created on first use. Re-enable token validation here to
-# restore real authentication.
-DEFAULT_USER_EMAIL = "demo@buildtrack.local"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
-def get_current_user(db: Session = Depends(get_db)) -> User:
-    user = db.query(User).filter(User.email == DEFAULT_USER_EMAIL).first()
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    email = decode_token(token)
+    if email is None:
+        raise credentials_exception
+    user = db.query(User).filter(User.email == email).first()
     if user is None:
-        user = User(
-            email=DEFAULT_USER_EMAIL,
-            hashed_password="",
-            full_name="Demo User",
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        raise credentials_exception
     return user

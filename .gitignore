@@ -2,6 +2,9 @@
 .env
 .ai-jail
 
+# Data files (e.g. import CSVs) are excluded from the repo
+*.csv
+
 # Python
 __pycache__/
 *.py[cod]

@@ -7,5 +7,9 @@ pydantic==2.10.4
 pydantic-settings==2.7.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+# passlib 1.7.4 is incompatible with bcrypt >= 4.1 (its backend-detection probe
+# feeds bcrypt a >72-byte password, which newer bcrypt rejects with ValueError,
+# 500-ing every register/login). Pin to the last compatible bcrypt release.
+bcrypt==4.0.1
 python-multipart==0.0.20
 email-validator==2.2.0

@@ -26,6 +26,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ImportResult(BaseModel):
+    milestones_created: int
+    tasks_created: int
+
+
 # ---------- Tags ----------
 class TagBase(BaseModel):
     name: str

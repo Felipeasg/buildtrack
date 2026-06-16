@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createMilestone, listMilestones } from "../api";
+import { createMilestone, importCsv, listMilestones } from "../api";
 import MilestoneForm from "../components/MilestoneForm";
 
 function fmt(d) {
@@ -16,6 +16,9 @@ export default function Dashboard() {
   const [milestones, setMilestones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+  const [importing, setImporting] = useState(false);
+  const fileInput = useRef(null);
 
   const load = () =>
     listMilestones().then((res) => {
@@ -31,6 +34,25 @@ export default function Dashboard() {
     load();
   };
 
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-importing the same file
+    if (!file) return;
+    setImporting(true);
+    setImportMsg("");
+    try {
+      const res = await importCsv(file);
+      setImportMsg(
+        `Imported ${res.data.milestones_created} milestones and ${res.data.tasks_created} tasks.`
+      );
+      await load();
+    } catch (err) {
+      setImportMsg(err.response?.data?.detail || "Import failed. Check the CSV format.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const overall = milestones.length
     ? Math.round(milestones.reduce((s, m) => s + m.progress, 0) / milestones.length)
     : 0;
@@ -42,10 +64,32 @@ export default function Dashboard() {
           <div className="eyebrow">Site overview</div>
           <h1>Build milestones</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          + New milestone
-        </button>
+        <div className="topbar-right">
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".csv"
+            style={{ display: "none" }}
+            onChange={handleImport}
+          />
+          <button
+            className="btn btn-ghost"
+            disabled={importing}
+            onClick={() => fileInput.current?.click()}
+          >
+            {importing ? "Importing…" : "Import CSV"}
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+            + New milestone
+          </button>
+        </div>
       </div>
+
+      {importMsg && (
+        <div className="card" style={{ marginBottom: 16, color: "var(--muted)" }}>
+          {importMsg}
+        </div>
+      )}
 
       {!loading && milestones.length > 0 && (
         <div className="card" style={{ marginBottom: 26 }}>

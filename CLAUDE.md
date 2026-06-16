@@ -30,7 +30,11 @@ npm run dev        # Vite dev server on :5173, proxies /api → http://localhost
 npm run build      # production build to dist/
 ```
 
-There is **no test suite, linter, or formatter configured** in this repo. Alembic is in `requirements.txt` but **not wired up** — tables are created via `Base.metadata.create_all` at startup (`app/main.py`), so model changes only take effect on a fresh DB. There are no migrations; altering a column requires dropping/recreating the table or adding Alembic.
+Backend tests live in `backend/tests/` (pytest, isolated in-memory SQLite via a `get_db` dependency override — they never touch Postgres). Run them through Compose:
+```bash
+docker compose run --rm --no-deps backend sh -c "pip install -q -r requirements-dev.txt && python -m pytest tests/ -q"
+```
+There is **no frontend test suite, linter, or formatter configured** in this repo. Alembic is in `requirements.txt` but **not wired up** — tables are created via `Base.metadata.create_all` at startup (`app/main.py`), so model changes only take effect on a fresh DB. There are no migrations; altering a column requires dropping/recreating the table or adding Alembic.
 
 ## Architecture
 
@@ -74,3 +78,35 @@ React → axios `/api/*` → (dev: Vite proxy / prod: nginx `proxy_pass` to `bac
 - Models and schemas each live in a single `__init__.py` — add new ones there, don't split into per-entity files unless refactoring deliberately.
 - Updates use `model_dump(exclude_unset=True)` for partial PATCH semantics; respect that pattern.
 - The backend runs as the `app` package (`uvicorn app.main:app`) — imports are absolute from `app.` (e.g. `from app.core.database import ...`).
+
+## Working Guidelines
+
+Behavioral guidelines to reduce common coding mistakes. These bias toward caution over speed — for trivial tasks, use judgment.
+
+### 1. Think before coding
+Don't assume, don't hide confusion, surface tradeoffs.
+- State assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop, name what's confusing, and ask.
+
+### 2. Simplicity first
+Minimum code that solves the problem. Nothing speculative.
+- No features beyond what was asked; no abstractions for single-use code.
+- No "flexibility"/"configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it. Ask: "Would a senior engineer say this is overcomplicated?"
+
+### 3. Surgical changes
+Touch only what you must. Clean up only your own mess.
+- Don't "improve" adjacent code, comments, or formatting; don't refactor what isn't broken.
+- Match existing style, even if you'd do it differently.
+- Remove imports/variables/functions that YOUR changes made unused; leave pre-existing dead code alone (mention it, don't delete it) unless asked.
+- The test: every changed line should trace directly to the user's request.
+
+### 4. Goal-driven execution
+Define success criteria, then loop until verified.
+- "Add validation" → write tests for invalid inputs, then make them pass.
+- "Fix the bug" → write a test that reproduces it, then make it pass.
+- "Refactor X" → ensure tests pass before and after.
+- For multi-step tasks, state a brief plan with a verification check for each step.
