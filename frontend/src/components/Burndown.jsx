@@ -67,7 +67,7 @@ export default function Burndown({ data }) {
             labelStyle={{ color: "#e8edf2" }}
           />
           <Line type="monotone" dataKey="Ideal" stroke="#4d8ef7" strokeWidth={2} strokeDasharray="5 4" dot={false} />
-          <Line type="monotone" dataKey="Actual" stroke="#f5a524" strokeWidth={2.5} dot={false} connectNulls />
+          <Line type="monotone" dataKey="Actual" stroke="#34c759" strokeWidth={2.5} dot={false} connectNulls />
           <ReferenceLine x={fmtDate(today)} stroke="#2dd4a7" strokeDasharray="2 2" label={{ value: "today", fill: "#2dd4a7", fontSize: 10, position: "top" }} />
         </LineChart>
       </ResponsiveContainer>
